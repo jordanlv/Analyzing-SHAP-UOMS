@@ -1,3 +1,4 @@
+import re
 from matplotlib.colors import BoundaryNorm, ListedColormap
 import numpy as np
 from itertools import combinations
@@ -165,62 +166,48 @@ def plot_heatmaps(
         ax.set_title(name, fontsize=13)
 
     plt.tight_layout()
-    # plt.show()
+
     return fig
 
 
 def load_nested_results(base_path) -> Dict[str, Any]:
-    """
-    Charge récursivement les résultats sérialisés (pickle) à partir d'une structure de dossiers
-    et les organise dans un dictionnaire imbriqué standard.
-
-    La structure attendue est : base_path/dataset/model/fold.pkl
-
-    Args:
-        base_path: Chemin d'accès racine contenant les dossiers de datasets.
-
-    Returns:
-        Un dictionnaire standard (dict) imbriqué contenant les résultats chargés.
-    """
     all_results = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
 
-    # Parcourir les dossiers de datasets
-    for dataset in sorted(os.listdir(base_path)):
+    for dataset in os.listdir(base_path):
         dataset_path = os.path.join(base_path, dataset)
-
-        # Vérifier si c'est un dossier et ignorer les fichiers cachés
         if not os.path.isdir(dataset_path) or dataset.startswith("."):
             continue
 
-        # Parcourir les dossiers de modèles
-        for model in sorted(os.listdir(dataset_path)):
+        for model in os.listdir(dataset_path):
             model_path = os.path.join(dataset_path, model)
-
             if not os.path.isdir(model_path) or model.startswith("."):
                 continue
 
-            # Parcourir les fichiers de fold (résultats)
-            for fold_file in sorted(os.listdir(model_path)):
-                if fold_file.startswith(".") or not fold_file.endswith(".pkl"):
+            for fold_file in os.listdir(model_path):
+                if not fold_file.endswith(".pkl") or fold_file.startswith("."):
                     continue
 
-                result_path = os.path.join(model_path, fold_file)
-
-                # Le 'fold_file' est supposé être de la forme 'N.pkl'
                 try:
                     fold_number = int(fold_file[:-4])
+                    with open(os.path.join(model_path, fold_file), "rb") as f:
+                        all_results[dataset][model][fold_number] = pickle.load(f)
                 except ValueError:
-                    # Ignorer les fichiers qui ne correspondent pas au format attendu (N.pkl)
                     continue
 
-                with open(result_path, "rb") as f:
-                    # Charger les résultats et les stocker dans le defaultdict imbriqué
-                    all_results[dataset][model][fold_number] = pickle.load(f)
+    # --- La magie du tri naturel ---
+    def natural_keys(text):
+        # Découpe "2_data" en ['', 2, '_data'] pour comparer les chiffres comme des entiers
+        return [
+            int(c) if c.isdigit() else c.lower() for c in re.split(r"(\d+)", str(text))
+        ]
 
-    # Convertir le defaultdict imbriqué en dict standard
     def to_regular_dict(d):
         if isinstance(d, dict):
-            return {k: to_regular_dict(v) for k, v in d.items()}
+            # On trie les clés avec la logique naturelle et on récure
+            return {
+                k: to_regular_dict(v)
+                for k, v in sorted(d.items(), key=lambda x: natural_keys(x[0]))
+            }
         return d
 
     return to_regular_dict(all_results)
