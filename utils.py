@@ -2,7 +2,7 @@ import re
 from matplotlib.colors import BoundaryNorm, ListedColormap
 import numpy as np
 from itertools import combinations
-from sklearn.metrics import ndcg_score, jaccard_score, roc_auc_score
+from sklearn.metrics import ndcg_score, jaccard_score, average_precision_score
 from typing import Callable, Dict, Tuple, Any
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -111,7 +111,7 @@ def compute_pred_jaccard(
     return compute_pairwise_metric(results_dict, "predictions", jaccard_metric)
 
 
-def compute_auc_roc(results_dict):
+def compute_aucpr(results_dict):
     model_names = list(set((results_dict.keys())) - set(["ground_truth"]))
     n_models = len(model_names)
     n_fold = len(results_dict[model_names[0]])
@@ -124,7 +124,7 @@ def compute_auc_roc(results_dict):
             y_true = results_dict["ground_truth"][fold_idx]
             y_test = results_dict[model_names[model]][fold_idx]["scores"]
 
-            mccs.append(roc_auc_score(y_true, y_test))
+            mccs.append(average_precision_score(y_true, y_test))
 
         all_mccs.append(np.nanmean(np.array(mccs)))
 
@@ -194,16 +194,13 @@ def load_nested_results(base_path) -> Dict[str, Any]:
                 except ValueError:
                     continue
 
-    # --- La magie du tri naturel ---
     def natural_keys(text):
-        # Découpe "2_data" en ['', 2, '_data'] pour comparer les chiffres comme des entiers
         return [
             int(c) if c.isdigit() else c.lower() for c in re.split(r"(\d+)", str(text))
         ]
 
     def to_regular_dict(d):
         if isinstance(d, dict):
-            # On trie les clés avec la logique naturelle et on récure
             return {
                 k: to_regular_dict(v)
                 for k, v in sorted(d.items(), key=lambda x: natural_keys(x[0]))
