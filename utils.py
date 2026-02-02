@@ -25,13 +25,11 @@ def compute_pairwise_metric(
     n_models = len(model_names)
     n_fold = len(results_dict[model_names[0]])
 
-    # Préchargement en mémoire pour éviter les lookups répétés
     data = {m: [results_dict[m][f][key] for f in range(n_fold)] for m in model_names}
 
     matrix = np.eye(n_models, dtype=float)
 
     for i, j in combinations(range(n_models), 2):
-        # Calcul vectorisé sur les folds si metric_fn n’est pas vectorisable
         scores = [
             metric_fn(data[model_names[i]][f], data[model_names[j]][f])
             for f in range(n_fold)
