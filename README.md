@@ -1,6 +1,6 @@
 # Analyzing Shapley additive explanations to understand anomaly detection algorithms behaviors and their complementarity
 
-<!-- [![HAL](https://img.shields.io/badge/HAL-Paper-blue.svg)]() -->
+[![HAL](https://img.shields.io/badge/HAL-Paper-blue.svg)](https://hal.science/hal-05485124)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
